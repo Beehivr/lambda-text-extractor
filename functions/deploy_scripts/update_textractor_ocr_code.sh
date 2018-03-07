@@ -1,0 +1,1 @@
+cd ../ocr;zip -r main.zip *;cd ../deploy_scripts;zip -r ../ocr/main.zip ../ocr/*; aws lambda update-function-code --function-name=DEV-test-gracine --zip-file=fileb://../ocr/main.zip;rm ../ocr/main.zip;

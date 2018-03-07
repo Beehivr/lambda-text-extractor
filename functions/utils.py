@@ -1,5 +1,7 @@
+import os
 import subprocess
-
+from urllib.parse import urlparse
+from urllib.parse import unquote_plus
 
 def get_subprocess_output(cmdline, redirect_stderr=True, display_output_on_exception=True, logger=None, **kwargs):
     if redirect_stderr: kwargs['stderr'] = subprocess.STDOUT
@@ -19,3 +21,10 @@ def get_subprocess_output(cmdline, redirect_stderr=True, display_output_on_excep
 
     return ''
 #end def
+
+
+def get_ext(document_uri):
+    o = urlparse(document_uri)
+    _, ext = os.path.splitext(o.path)  # get format from extension
+    ext = ext.lower()
+    return ext
