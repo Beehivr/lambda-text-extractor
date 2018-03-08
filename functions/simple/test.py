@@ -7,6 +7,7 @@ logger.info('runnint test.py')
 # key = "dev-client-ben/library/draft/040117_Gemtone_Radiant_Nude_OPP_2_page.pdf"
 key = "dev-client-ben/library/draft/sub_folder/2016_BASF_CC_LysSun_TPP.pdf"
 # key = "dev-client-ben/library/draft/AAssembled.pdf"
+key= "dev-client-ben/library/draft/_name_has_space+plus%2Bhiphen%27.pdf"
 
 event = {
   "Records": [
@@ -47,6 +48,7 @@ event = {
   ]
 }
 
+
 sns_event = {
     "Records": [
         {
@@ -58,7 +60,7 @@ sns_event = {
                 "MessageId": "2428029d-a5d6-523b-81f0-5187b5151b61",
                 "TopicArn": "arn:aws:sns:us-east-1:457807691790:dev-pdf-update",
                 "Subject": "Amazon S3 Notification",
-                "Message": "{\"Records\":[{\"eventVersion\":\"2.0\",\"eventSource\":\"aws:s3\",\"awsRegion\":\"us-east-1\",\"eventTime\":\"2018-03-07T16:08:34.929Z\",\"eventName\":\"ObjectCreated:Put\",\"userIdentity\":{\"principalId\":\"AWS:AIDAISHW4LNLCJT4KIH3W\"},\"requestParameters\":{\"sourceIPAddress\":\"70.29.213.203\"},\"responseElements\":{\"x-amz-request-id\":\"F58F47B513EA8109\",\"x-amz-id-2\":\"0lNGzL7p9BfzpkkwJVHpZ9zm0X8ccxlRSAwIlhCFYVjkU7iHBm5MyDcrhfJ4/H3TCzfyKBrDLK8=\"},\"s3\":{\"s3SchemaVersion\":\"1.0\",\"configurationId\":\"2a711272-168f-46bf-ad11-69786c37bdc1\",\"bucket\":{\"name\":\"dev-beehivr-bucket\",\"ownerIdentity\":{\"principalId\":\"A24ERPT90EN829\"},\"arn\":\"arn:aws:s3:::dev-beehivr-bucket\"},\"object\":{\"key\":\"dev-client-ben/library/draft/2016_BASF-Protein-CheatSheet_LRes.pdf\",\"size\":554534,\"eTag\":\"c9ca7a036361a0d47656140ac317e9e2\",\"versionId\":\"rvszlc9KvXXZzZA7T9P.L9t8KGbo7Y8x\",\"sequencer\":\"005AA00E82C26B82F7\"}}}]}",
+                "Message": "{\"Records\":[{\"eventVersion\":\"2.0\",\"eventSource\":\"aws:s3\",\"awsRegion\":\"us-east-1\",\"eventTime\":\"2018-03-07T16:08:34.929Z\",\"eventName\":\"ObjectCreated:Put\",\"userIdentity\":{\"principalId\":\"AWS:AIDAISHW4LNLCJT4KIH3W\"},\"requestParameters\":{\"sourceIPAddress\":\"70.29.213.203\"},\"responseElements\":{\"x-amz-request-id\":\"F58F47B513EA8109\",\"x-amz-id-2\":\"0lNGzL7p9BfzpkkwJVHpZ9zm0X8ccxlRSAwIlhCFYVjkU7iHBm5MyDcrhfJ4/H3TCzfyKBrDLK8=\"},\"s3\":{\"s3SchemaVersion\":\"1.0\",\"configurationId\":\"2a711272-168f-46bf-ad11-69786c37bdc1\",\"bucket\":{\"name\":\"dev-beehivr-bucket\",\"ownerIdentity\":{\"principalId\":\"A24ERPT90EN829\"},\"arn\":\"arn:aws:s3:::dev-beehivr-bucket\"},\"object\":{\"key\":\"" +  key + "\",\"size\":554534,\"eTag\":\"c9ca7a036361a0d47656140ac317e9e2\",\"versionId\":\"rvszlc9KvXXZzZA7T9P.L9t8KGbo7Y8x\",\"sequencer\":\"005AA00E82C26B82F7\"}}}]}",
                 "Timestamp": "2018-03-07T16:08:35.076Z",
                 "SignatureVersion": "1",
                 "Signature": "MqdP86bJvM6isRWIwniQU9TNHOE86wh0ON7f4fxlpLRQprMJTm5h4Yv2kq6OioAJrALP1/isqbJLCqjDByig1yC1sqgHED9UwvfwYRAlad0s7v+JAqa3RP8VYoMcolU278QaUMCx/7pdJATRNuRvxBHs770sg2nv+65ppL/HO5fXmYxDJuNi34bCdhnPlEnQQOkeJQTK6Fc90XyYWNUSrqYEPQfdk4VfaDPmGdl+LWPp4lmyWN0PX6xuydsdoHC+Rydihc6329xRp/BtRlpaarcWkefK5r429VimgiubwTqPDocEVpaqVKdpfIX+KNqyb0ZTCq2vhg+ET64Sv21/yA==",

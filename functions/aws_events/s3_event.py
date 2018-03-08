@@ -1,6 +1,8 @@
 import boto3
 import botocore
 import simple_logger
+import re
+import urllib
 
 logger=simple_logger.logger()
 
@@ -15,7 +17,7 @@ class S3Event:
         self.event = event
         self.source = event['s3']
         self.bucket = self.source['bucket']['name']
-        self.key = self.source['object']['key']
+        self.key = self.__decode_key(self.source['object']['key'])
         self.etag = self.source['object']['eTag']
         self.size = self.source['object']['size']
         self.arn = self.source['bucket']['arn'] + self.source['bucket']['name']
@@ -56,3 +58,6 @@ class S3Event:
             Body = self.formatter.format(event = self.event, source=self.source, text=body),
             Key = new_key
         )
+
+    def __decode_key(self, key):
+        return urllib.parse.unquote_plus(key)
