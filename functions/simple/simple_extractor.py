@@ -6,21 +6,20 @@ import os
 import re
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-from urllib.parse import urlparse
 from zipfile import is_zipfile, ZipFile
 
 import boto3
+import botocore
 
 from utils import get_subprocess_output
+from utils import get_ext
 from uriutils import uri_read, uri_exists, uri_dump
 
 LAMBDA_TASK_ROOT = os.environ.get('LAMBDA_TASK_ROOT', os.path.dirname(os.path.abspath(__file__)))
 BIN_DIR = os.path.join(LAMBDA_TASK_ROOT, 'bin')
 LIB_DIR = os.path.join(LAMBDA_TASK_ROOT, 'lib')
 
-TEXTRACTOR_OCR = os.environ['TEXTRACTOR_OCR']
-
-lambda_client = boto3.client('lambda')
+# TEXTRACTOR_OCR = os.environ['TEXTRACTOR_OCR']
 
 with NamedTemporaryFile(mode='w', delete=False) as f:
     CATDOCRC_PATH = f.name
@@ -29,107 +28,61 @@ with NamedTemporaryFile(mode='w', delete=False) as f:
 #end with
 
 logging.basicConfig(format='%(asctime)-15s [%(name)s-%(process)d] %(levelname)s: %(message)s', level=logging.INFO)
+
+__name__ = 'simple_extractor'
 logger = logging.getLogger(__name__)
 
 
-def handle(event, context):
-    global logger
 
-    document_uri = event['document_uri']
-    temp_uri_prefix = event.get('temp_uri_prefix', event['document_uri'] + '-temp')
-    text_uri = event.get('text_uri', document_uri + '.txt')
-    disable_ocr = event.get('disable_ocr', False)
+def extract(event_handler, ext=None, disable_ocr=True):
+
+    logger.info("\n\n\nStarting Document parse\n" + event_handler.key + "\n\n\n")
 
     # AWS Lambda auto-retries errors for 3x. This should make it disable retrying...kinda. See https://stackoverflow.com/questions/32064038/aws-lambda-function-triggering-multiple-times-for-a-single-event
-    aws_context_retry_uri = os.path.join(temp_uri_prefix, 'aws_lambda_request_ids', context.aws_request_id)
-    if uri_exists(aws_context_retry_uri):
-        return
-    uri_dump(aws_context_retry_uri, '', mode='w')
+    #aws_context_retry_uri = os.path.join(temp_uri_prefix, 'aws_lambda_request_ids', context.aws_request_id)
+    #if uri_exists(aws_context_retry_uri):
+    #    return
+    #uri_dump(aws_context_retry_uri, '', mode='w')
 
-    logger.info('{} invoked with event {}.'.format(os.environ['AWS_LAMBDA_FUNCTION_NAME'], json.dumps(event)))
-
-    o = urlparse(document_uri)
-    _, ext = os.path.splitext(o.path)  # get format from extension
-    ext = ext.lower()
+    # logger.info('{} invoked with event {}.'.format(os.environ['AWS_LAMBDA_FUNCTION_NAME'], json.dumps(event)))
+    if ext is None:
+        ext = get_ext(event_handler.key)
+    logger.info("file ext " + ext)
 
     extract_func = PARSE_FUNCS.get(ext)
     if extract_func is None:
-        uri_dump(text_uri, '', mode='w', textio_args={'errors': 'ignore'}, storage_args=dict(ContentType='text/plain', Metadata=dict(Exception='<{}> has unsupported extension "{}".'.format(document_uri, ext))))
-        raise ValueError('<{}> has unsupported extension "{}".'.format(document_uri, ext))
-    #end if
+        raise ValueError('<{}> has unsupported extension "{}".'.format(event_handler.key, ext))
+        return
 
     fallback_to_ocr = False
-    textractor_results = {}
+    # textractor_results = {}
     if extract_func is False:
         fallback_to_ocr = True
-        logger.info('Fallback to OCR for <{document_uri}>.'.format(document_uri=document_uri))
+        logger.info('Fallback to OCR for <{}>.'.format(event_handler.key))
+        return ('ocr', None)
 
     else:
         with NamedTemporaryFile(mode='wb', suffix=ext, delete=False) as f:
             document_path = f.name
-            f.write(uri_read(document_uri, mode='rb'))
-            logger.debug('Downloaded <{}> to <{}>.'.format(document_uri, document_path))
+            f.write(event_handler.get_content().read())
+
+            logger.info('Downloaded <{}> to <{}>.'.format(event_handler.key, document_path))
         #end with
 
-        try:
-            text = extract_func(document_path, event, context)
+        text = extract_func(document_path)
 
-            if extract_func is pdf_to_text and len(text) < 512 and not disable_ocr:
-                logger.info('Fallback to OCR for <{document_uri}>.'.format(document_uri=document_uri))
-                textractor_results = dict(method='ocr', size=-1, success=False)
-                fallback_to_ocr = True
+        if extract_func is pdf_to_text and len(text) < 512 and not disable_ocr:
+            return ('ocr', None)
 
-            else:
-                textractor_results = dict(method=extract_func.__name__, size=len(text), success=True)
+        else:
+            if len(text) == 0: logger.warning('<{}> does not contain any content.'.format(event_handler.key))
+            return ('ok', text)
+        #end if
 
-                uri_dump(text_uri, text, mode='w', textio_args={'errors': 'ignore'}, storage_args=dict(ContentType='text/plain', Metadata=dict(method=extract_func.__name__)))
-                logger.info('Extracted {} bytes from <{}> to <{}>.'.format(len(text), document_uri, text_uri))
-
-                if len(text) == 0: logger.warning('<{}> does not contain any content.'.format(document_uri))
-            #end if
-
-        except Exception as e:
-            logger.exception('Extraction exception for <{}>'.format(document_uri))
-            textractor_results = dict(success=False, reason=str(e))
-            uri_dump(text_uri, '', mode='w', textio_args={'errors': 'ignore'}, storage_args=dict(ContentType='text/plain', Metadata=dict(Exception=str(e))))
-
-        finally:
-            os.remove(document_path)
-        #end try
     #end if
 
-    payload = event.copy()
+    return ('ocr', None)
 
-    if not disable_ocr and fallback_to_ocr:
-        response = lambda_client.invoke(
-            FunctionName=TEXTRACTOR_OCR,
-            InvocationType='Event',
-            LogType='None',
-            Payload=json.dumps(payload)
-        )
-        response['Payload'] = response['Payload'].read().decode('utf-8')
-        textractor_results = dict(method='ocr', size=-1, success=False)
-        logger.debug('Invoked OCR lambda <{}> with payload {}.\nResponse is {}'.format(TEXTRACTOR_OCR, json.dumps(payload), response))
-
-    else:
-        payload['text_uri'] = text_uri
-
-        for cb in event.get('callbacks', []):
-            if cb['step'] == 'textractor':
-                try:
-                    uri_dump(cb['uri'], json.dumps(payload), mode='w')
-                    logger.info('Called callback {} with payload {}.'.format(json.dumps(cb), json.dumps(payload)))
-
-                except Exception as e: logger.exception('Callback exception for {} with payload {}.'.format(json.dumps(cb), json.dumps(payload)))
-            #end if
-        #end for
-    #end if
-
-    payload.setdefault('results', {})
-    payload['results']['textractor'] = textractor_results
-    logger.debug('Textraction complete.')
-
-    return payload
 #end def
 
 
@@ -140,21 +93,37 @@ def _get_subprocess_output(*args, **kwargs):
 #end def
 
 
-def pdf_to_text(document_path, event, context):
+#================================================================
+#
+#
+#                        Text converters
+#
+#
+#================================================================
+
+
+def pdf_to_text(document_path):
+    logger.info("\n>>> Starting pdf_to_text > " + document_path)
     with NamedTemporaryFile(suffix='.txt', delete=False) as f:
         text_path = f.name
 
+    logger.info(">>> _get_subprocess_output ")
     _get_subprocess_output([os.path.join(BIN_DIR, 'pdftotext'), '-layout', '-nopgbrk', '-eol', 'unix', document_path, text_path], shell=False, env=dict(LD_LIBRARY_PATH=os.path.join(LIB_DIR, 'pdftotext')))
 
+    logger.info(">>> io_open ")
     with io.open(text_path, mode='r', encoding='utf-8', errors='ignore') as f:
         text = f.read().strip()
-    os.remove(text_path)
+
+    logger.info(">>> os_remove ")
+    # os.remove(text_path)
+
+    logger.info(">>> done ")
 
     return text
 #end def
 
 
-def doc_to_text(document_path, event, context):
+def doc_to_text(document_path, event_handler):
     global logger
 
     cmdline = [os.path.join(BIN_DIR, 'antiword'), '-t', '-w', '0', '-m', 'UTF-8', document_path]
@@ -163,12 +132,12 @@ def doc_to_text(document_path, event, context):
         text = text.decode('utf-8', errors='ignore').strip()
     except CalledProcessError as e:
         if b'Rich Text Format' in e.output:
-            logger.debug('Antiword failed on possible Rich Text file <{}>.'.format(event['document_uri']))
-            return rtf_to_text(document_path, event, context)
+            logger.info('Antiword failed on possible Rich Text file <{}>.'.format(event_handler.key))
+            return rtf_to_text(document_path, event_handler)
 
         elif b'"docx" file' in e.output or is_zipfile(document_path):
-            logger.debug('Antiword failed on possible docx file <{}>.'.format(event['document_uri']))
-            return docx_to_text(document_path, event, context)
+            logger.info('Antiword failed on possible docx file <{}>.'.format(event_handler.key))
+            return docx_to_text(document_path, event_handler)
 
         else:
             logger.exception('Antiword exception with output "{}".'.format(e.output.decode('ascii', errors='ignore')))
@@ -186,7 +155,7 @@ def doc_to_text(document_path, event, context):
 #end def
 
 
-def docx_to_text(document_path, event, context):
+def docx_to_text(document_path, event_handler):
     global logger
 
     from docx import Document
@@ -209,7 +178,7 @@ def docx_to_text(document_path, event, context):
         return text
 
     except Exception:
-        logger.exception('Exception while parsing <{}>.'.format(event['document_uri']))
+        logger.exception('Exception while parsing <{}>.'.format(event_handler.key))
     #end try
 
     # Extract it from the XML
@@ -238,7 +207,7 @@ def docx_to_text(document_path, event, context):
 #end def
 
 
-def rtf_to_text(document_path, event, context):
+def rtf_to_text(document_path):
     cmdline = [os.path.join(BIN_DIR, 'unrtf'), '-P', os.path.join(LIB_DIR, 'unrtf'), '--text', document_path]
     text = _get_subprocess_output(cmdline, shell=False)
     text = text.decode('utf-8', errors='ignore')
@@ -259,7 +228,7 @@ def rtf_to_text(document_path, event, context):
 #end def
 
 
-def xls_to_text(document_path, event, context):
+def xls_to_text(document_path):
     import xlrd
 
     book = xlrd.open_workbook(document_path)
@@ -294,7 +263,7 @@ def xls_to_text(document_path, event, context):
 # #end def
 
 
-def pptx_to_text(document_path, event, context):
+def pptx_to_text(document_path):
     import pptx
 
     prs = pptx.Presentation(document_path)
@@ -312,7 +281,7 @@ def pptx_to_text(document_path, event, context):
 #end def
 
 
-def html_to_text(document_path, event, context):
+def html_to_text(document_path):
     import lxml.html
 
     document = lxml.html.parse(document_path)
@@ -324,7 +293,7 @@ def html_to_text(document_path, event, context):
 #end def
 
 
-def text_to_text(document_path, event, context):
+def text_to_text(document_path):
     with io.open(document_path, mode='r', encoding='utf-8', errors='ignore') as f:
         text = f.read().strip()
 
@@ -332,7 +301,7 @@ def text_to_text(document_path, event, context):
 #end def
 
 
-def csv_to_text(document_path, event, context):
+def csv_to_text(document_path):
     import csv
     with io.open(document_path, mode='r', encoding='utf-8', errors='ignore') as f:
         reader = csv.reader(f)
@@ -343,7 +312,7 @@ def csv_to_text(document_path, event, context):
 #end def
 
 
-def odf_to_text(document_path, event, context):
+def odf_to_text(document_path):
     from odf.opendocument import load as odf_load
     from odf import text as odf_text
     from odf import teletype as odf_teletype

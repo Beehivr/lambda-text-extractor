@@ -1,0 +1,15 @@
+# Install for Mac osx
+
+brew install poppler  ( for pdfinfo, pdftotext, pdfseparate)
+brew install tesseract
+
+go in ocr/bin-osx
+
+ln -s `which gs`
+ln -s `which pdfinfo`
+ln -s `which pdftotext`
+ln -s `which pdfseparate`
+ln -s `which tesseract`
+
+unlink bin
+ln -s bin-osx bin
