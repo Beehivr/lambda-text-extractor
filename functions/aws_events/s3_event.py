@@ -17,10 +17,11 @@ class S3Event:
         self.event = event
         self.source = event['s3']
         self.bucket = self.source['bucket']['name']
-        self.key = self.__decode_key(self.source['object']['key'])
-        self.etag = self.source['object']['eTag']
-        self.size = self.source['object']['size']
         self.arn = self.source['bucket']['arn'] + self.source['bucket']['name']
+        key = self.source['object']['key'] if ('key' in self.source['object']) else ''
+        self.key = self.__decode_key(key)
+        self.etag = self.source['object']['eTag'] if ('eTag' in self.source['object']) else ''
+        self.size = self.source['object']['size'] if ('size' in self.source['object']) else ''
         self.uri = None
         self.formatter = None
 
