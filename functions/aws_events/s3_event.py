@@ -2,7 +2,8 @@ import boto3
 import botocore
 import simple_logger
 import re
-import urllib
+from urllib.parse import unquote_plus
+
 
 logger=simple_logger.logger()
 
@@ -19,7 +20,7 @@ class S3Event:
         self.bucket = self.source['bucket']['name']
         self.arn = self.source['bucket']['arn'] + self.source['bucket']['name']
         key = self.source['object']['key'] if ('key' in self.source['object']) else ''
-        self.key = self.__decode_key(key)
+        self.key = unquote_plus(key)
         self.etag = self.source['object']['eTag'] if ('eTag' in self.source['object']) else ''
         self.size = self.source['object']['size'] if ('size' in self.source['object']) else ''
         self.uri = None
@@ -59,6 +60,3 @@ class S3Event:
             Body = self.formatter.format(event = self.event, source=self.source, text=body),
             Key = new_key
         )
-
-    def __decode_key(self, key):
-        return urllib.parse.unquote_plus(key)

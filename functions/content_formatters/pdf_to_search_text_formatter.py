@@ -1,5 +1,6 @@
 import json
 import re
+from urllib.parse import unquote_plus
 
 __name__ = 'pdf_to_search_text_formatter'
 
@@ -21,4 +22,5 @@ class PdfToSearchTextFormatter:
         if(self.key_filter is not None):
             r = re.compile('.*'+self.key_filter)
             key = r.sub('', key)
+            key = unquote_plus(key)
         return key
