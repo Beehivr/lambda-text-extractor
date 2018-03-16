@@ -25,6 +25,12 @@ def handle(event, context):
             event_klass = factory.instantiate('s3', event)
             event_klass.formatter = PdfToSearchTextFormatter(key_filter=S3_OBJ_PREFIX_FILTER)
 
+            if(not should_execute(event_klass.key)):
+                logger.info("PREFIX NOT FOUND")
+                return
+
+            logger.info("CONTINUE")
+
             ext = get_ext(event_klass.key)
             logger.info(ext)
 
@@ -41,6 +47,10 @@ def handle(event, context):
             except Exception as e:
                 logger.exception('Extraction exception for <{}>'.format(event_klass.key))
             #end try
+
+def should_execute(key):
+    r = re.compile('('+S3_OBJ_PREFIX_FILTER+')')
+    return r.search(key)
 
 
 def get_target_key(key):
