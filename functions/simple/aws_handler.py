@@ -40,13 +40,19 @@ def handle(event, context):
                     new_file = event_klass.change_file_extension('json')
                     new_file = get_target_key(new_file)
                     logger.info(new_file)
-                    event_klass.put_content(new_file, text)
+                    file_name = get_file_name_from_path(event_klass.key)
+                    event_klass.put_content(new_file,  file_name + "\n" + text)
                 elif (status=='ocr'):
                     logger.info('>>> Sending to OCR lambda')
 
             except Exception as e:
                 logger.exception('Extraction exception for <{}>'.format(event_klass.key))
             #end try
+
+def get_file_name_from_path(name):
+    parts = name.split('/')
+    return parts[len(parts)-1]
+
 
 def should_execute(key):
     r = re.compile('('+S3_OBJ_PREFIX_FILTER+')')

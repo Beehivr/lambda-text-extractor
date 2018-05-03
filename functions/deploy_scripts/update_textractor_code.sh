@@ -11,14 +11,15 @@ function prepare_package() {
   unlink pdftotext
   ln -s ../../../bin-linux_x64/pdftotext
   cd $APP_ROOT
-  zip -r main.zip *
+  zip -r exports.zip *
+  aws s3 cp exports.zip s3://beehivr-lambda-functions/pdf-text-extractor/exports.zip
 }
 
 function copy_package() {
   cd $APP_ROOT
   echo ""
   echo "deploying to λ function $1"
-  aws lambda update-function-code --function-name=$1 --zip-file=fileb://main.zip
+  aws lambda update-function-code --function-name=$1 --s3-bucket='beehivr-lambda-functions' --s3-key='pdf-text-extractor/exports.zip'
 }
 
 if [ -z $ARG1 ]; then
@@ -51,7 +52,7 @@ if [ $ARG1 = 'production' ]; then
 fi
 
 cd $APP_ROOT
-rm main.zip
+rm exports.zip
 
 cd $HERE
 
