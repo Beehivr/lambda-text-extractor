@@ -7,8 +7,11 @@ logger.info('runnint test.py')
 # key = "dev-client-ben/library/draft/040117_Gemtone_Radiant_Nude_OPP_2_page.pdf"
 # key = "dev-client-ben/library/draft/sub_folder/2016_BASF_CC_LysSun_TPP.pdf"
 # key = "dev-client-ben/library/draft/AAssembled.pdf"
-key= "dev-client-ben/library/draft/_name_has_space+plus%2Bhiphen%27.pdf"
-key= "dev-client-ben/library/published/_name_has_space+plus%2Bhiphen%27.pdf"
+# key= "dev-client-ben/library/draft/_name_has_space+plus%2Bhiphen%27.pdf"
+# key= "dev-client-ben/library/published/_name_has_space+plus%2Bhiphen%27.pdf"
+key = "dev-client-ben/library/draft/CC-FR-17-026-B01.pdf"
+key = "dev-client-ben/library/draft/TestWord.doc"
+key = "dev-client-ben/library/draft/TestWordX.docx"
 
 event = {
   "Records": [

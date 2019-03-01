@@ -35,7 +35,7 @@ def handle(event, context):
             logger.info(ext)
 
             try:
-                status, text = simple_extractor.extract(event_handler=event_klass, ext=ext, disable_ocr=False )
+                status, text = simple_extractor.extract(event_handler=event_klass, ext=ext, disable_ocr=True )
                 if (status=='ok'):
                     new_file = event_klass.change_file_extension('json')
                     new_file = get_target_key(new_file)
@@ -46,6 +46,7 @@ def handle(event, context):
                     logger.info('>>> Sending to OCR lambda')
 
             except Exception as e:
+                logger.exception(str(e))
                 logger.exception('Extraction exception for <{}>'.format(event_klass.key))
             #end try
 

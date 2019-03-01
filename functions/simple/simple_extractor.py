@@ -69,7 +69,7 @@ def extract(event_handler, ext=None, disable_ocr=True):
             logger.info('Downloaded <{}> to <{}>.'.format(event_handler.key, document_path))
         #end with
 
-        text = extract_func(document_path)
+        text = extract_func(document_path, event_handler)
 
         if extract_func is pdf_to_text and len(text) < 512 and not disable_ocr:
             return ('ocr', None)
@@ -102,7 +102,7 @@ def _get_subprocess_output(*args, **kwargs):
 #================================================================
 
 
-def pdf_to_text(document_path):
+def pdf_to_text(document_path, event_handler):
     logger.info("\n>>> Starting pdf_to_text > " + document_path)
     with NamedTemporaryFile(suffix='.txt', delete=False) as f:
         text_path = f.name
@@ -207,7 +207,7 @@ def docx_to_text(document_path, event_handler):
 #end def
 
 
-def rtf_to_text(document_path):
+def rtf_to_text(document_path, event_handler):
     cmdline = [os.path.join(BIN_DIR, 'unrtf'), '-P', os.path.join(LIB_DIR, 'unrtf'), '--text', document_path]
     text = _get_subprocess_output(cmdline, shell=False)
     text = text.decode('utf-8', errors='ignore')
@@ -228,7 +228,7 @@ def rtf_to_text(document_path):
 #end def
 
 
-def xls_to_text(document_path):
+def xls_to_text(document_path, event_handler):
     import xlrd
 
     book = xlrd.open_workbook(document_path)
@@ -255,15 +255,15 @@ def xls_to_text(document_path):
 #end def
 
 
-# def ppt_to_text(document_path, event, context):
-#     cmdline = [os.path.join(BIN_DIR, 'catppt'), '-dutf-8', document_path]
-#     text = _get_subprocess_output(cmdline, shell=False, env=dict(CATDOCRC_PATH=CATDOCRC_PATH))
+def ppt_to_text(document_path, event):
+    cmdline = [os.path.join(BIN_DIR, 'catppt'), '-dutf-8', document_path]
+    text = _get_subprocess_output(cmdline, shell=False, env=dict(CATDOCRC_PATH=CATDOCRC_PATH))
 
-#     return text.decode('utf-8', errors='ignore').strip()
-# #end def
+    return text.decode('utf-8', errors='ignore').strip()
+#end def
 
 
-def pptx_to_text(document_path):
+def pptx_to_text(document_path, event_handler):
     import pptx
 
     prs = pptx.Presentation(document_path)
@@ -281,7 +281,7 @@ def pptx_to_text(document_path):
 #end def
 
 
-def html_to_text(document_path):
+def html_to_text(document_path, event_handler):
     import lxml.html
 
     document = lxml.html.parse(document_path)
@@ -293,7 +293,7 @@ def html_to_text(document_path):
 #end def
 
 
-def text_to_text(document_path):
+def text_to_text(document_path, event_handler):
     with io.open(document_path, mode='r', encoding='utf-8', errors='ignore') as f:
         text = f.read().strip()
 
@@ -301,7 +301,7 @@ def text_to_text(document_path):
 #end def
 
 
-def csv_to_text(document_path):
+def csv_to_text(document_path, event_handler):
     import csv
     with io.open(document_path, mode='r', encoding='utf-8', errors='ignore') as f:
         reader = csv.reader(f)
@@ -312,7 +312,7 @@ def csv_to_text(document_path):
 #end def
 
 
-def odf_to_text(document_path):
+def odf_to_text(document_path, event_handler):
     from odf.opendocument import load as odf_load
     from odf import text as odf_text
     from odf import teletype as odf_teletype
@@ -343,7 +343,7 @@ PARSE_FUNCS = {
     '.ots': odf_to_text,
     '.ott': odf_to_text,
     '.pdf': pdf_to_text,
-    # '.ppt': ppt_to_text,  # catppt not working (2017/08/10)
+    '.ppt': ppt_to_text,  # catppt not working (2017/08/10)
     '.pptx': pptx_to_text,
     '.rtf': rtf_to_text,
     '.text': text_to_text,
